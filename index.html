@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CiviTwin AI - Interactive Governance Sandbox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #090d16; color: white; font-family: 'Inter', system-ui, sans-serif; }
+        canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; }
+        .glass { background: rgba(9, 13, 22, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .ui-layer { position: relative; z-index: 10; pointer-events: none; }
+        .ui-content { pointer-events: auto; }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
+    </style>
+</head>
+<body class="h-screen w-screen">
+    <!-- UI Layer -->
+    <div class="ui-layer w-full h-full p-4 flex gap-4">
+        
+        <!-- Sidebar -->
+        <div class="ui-content w-80 glass rounded-2xl p-5 flex flex-col gap-5 max-h-full overflow-y-auto">
+            
+            <!-- Header -->
+            <div>
+                <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500 flex items-center gap-2">
+                    <i data-lucide="boxes" class="w-6 h-6 text-blue-400"></i>
+                    CiviTwin AI
+                </h1>
+                <p class="text-xs text-gray-400 mt-1">AI-Powered Digital Twin Sandbox</p>
+            </div>
+
+            <!-- Dashboards / Metrics -->
+            <div>
+                <h2 class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">Live Impact Metrics</h2>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    <div class="bg-black/40 p-3 rounded-lg border border-white/5 relative overflow-hidden group flex flex-col justify-between">
+                        <div class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <span class="text-gray-400 block text-[10px] uppercase mb-1">Public Satisfaction</span>
+                        <span id="sat-score" class="text-green-400 font-mono text-2xl font-semibold">0%</span>
+                    </div>
+                    <div class="bg-black/40 p-3 rounded-lg border border-white/5 relative overflow-hidden group flex flex-col justify-between">
+                        <div class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <span class="text-gray-400 block text-[10px] uppercase mb-1">Infra Index</span>
+                        <span id="infra-score" class="text-blue-400 font-mono text-2xl font-semibold">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-white/10"></div>
+
+            <!-- Interventions (Gravity Wells) -->
+            <div>
+                <h2 class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">Build Interventions (Attract)</h2>
+                <div class="flex flex-col gap-2">
+                    <button id="tool-intervention" class="tool-btn active flex items-center gap-3 p-3 rounded-lg bg-blue-600/20 border border-blue-500/50 hover:bg-blue-600/40 transition-all">
+                        <div class="bg-blue-500/20 p-1.5 rounded-md"><i data-lucide="building-2" class="w-4 h-4 text-blue-400"></i></div>
+                        <div class="text-left">
+                            <span class="text-sm font-medium block text-blue-100">Infrastructure (+)</span>
+                            <span class="text-[10px] text-blue-300/70">Schools, Hospitals, Roads</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Problems (Antigravity Wells) -->
+            <div>
+                <h2 class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">Simulate Issues (Repel)</h2>
+                <div class="flex flex-col gap-2">
+                    <button id="tool-problem" class="tool-btn flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-pink-600/20 hover:border-pink-500/50 transition-all">
+                        <div class="bg-pink-500/20 p-1.5 rounded-md"><i data-lucide="alert-triangle" class="w-4 h-4 text-pink-400"></i></div>
+                        <div class="text-left">
+                            <span class="text-sm font-medium block text-pink-100">Citizen Complaints (-)</span>
+                            <span class="text-[10px] text-pink-300/70">Water Crisis, Potholes</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="border-t border-white/10"></div>
+
+            <!-- Scenarios -->
+            <div>
+                <h2 class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">Quick Scenarios</h2>
+                <div class="flex gap-2">
+                    <button id="btn-scenario-smart" class="flex-1 bg-white/5 border border-white/10 p-2 rounded hover:bg-white/10 text-xs flex flex-col items-center gap-1 transition-colors">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-blue-400"></i> Smart City
+                    </button>
+                    <button id="btn-scenario-crisis" class="flex-1 bg-white/5 border border-white/10 p-2 rounded hover:bg-white/10 text-xs flex flex-col items-center gap-1 transition-colors">
+                        <i data-lucide="flame" class="w-4 h-4 text-orange-400"></i> Crisis Mode
+                    </button>
+                    <button id="btn-scenario-shield" class="flex-1 bg-white/5 border border-white/10 p-2 rounded hover:bg-white/10 text-xs flex flex-col items-center gap-1 transition-colors">
+                        <i data-lucide="shield" class="w-4 h-4 text-green-400"></i> Dev Shield
+                    </button>
+                </div>
+            </div>
+            
+            <div class="border-t border-white/10 mt-auto"></div>
+
+            <!-- Controls -->
+            <div>
+                 <div class="flex justify-between items-center mb-2">
+                     <label class="flex items-center gap-2 text-xs text-gray-300 cursor-pointer hover:text-white">
+                         <input type="checkbox" id="chk-trails" checked class="rounded bg-black border-white/20 accent-blue-500"> Citizen Trails
+                     </label>
+                     <label class="flex items-center gap-2 text-xs text-gray-300 cursor-pointer hover:text-white">
+                         <input type="checkbox" id="chk-grid" checked class="rounded bg-black border-white/20 accent-blue-500"> Field Grid
+                     </label>
+                 </div>
+                 
+                 <div class="mt-4 mb-2">
+                    <label class="text-[10px] uppercase tracking-wider text-gray-500 flex justify-between">
+                        <span>Intervention Gravity</span>
+                        <span id="grav-val">2000</span>
+                    </label>
+                    <input type="range" id="slider-gravity" min="500" max="5000" value="2000" class="w-full accent-blue-500 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer mt-1">
+                 </div>
+                 
+                 <button id="btn-clear" class="w-full mt-2 bg-red-500/10 text-red-400 p-2.5 rounded-lg text-sm font-medium hover:bg-red-500/20 border border-red-500/30 transition-colors flex items-center justify-center gap-2">
+                     <i data-lucide="trash-2" class="w-4 h-4"></i> Clear Sandbox
+                 </button>
+            </div>
+        </div>
+        
+        <!-- Tooltip Overlay -->
+        <div class="ui-content hidden md:flex items-start justify-end flex-1">
+            <div class="glass px-4 py-2 rounded-full text-xs text-gray-300 flex items-center gap-2 shadow-lg">
+                <i data-lucide="mouse-pointer-click" class="w-4 h-4"></i>
+                <span>Click to place. Hold Shift & Click for local Antigravity Field.</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Canvas -->
+    <canvas id="simCanvas"></canvas>
+
+    <script>
+        lucide.createIcons();
+
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        
+        let width, height;
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        let particles = [];
+        let wells = [];
+        let activeTool = 'intervention'; 
+        let mouseGravityGun = false;
+        let mousePos = { x: 0, y: 0 };
+        let baseGravity = 2000;
+
+        // UI Elements
+        const toolIntervention = document.getElementById('tool-intervention');
+        const toolProblem = document.getElementById('tool-problem');
+        const chkTrails = document.getElementById('chk-trails');
+        const chkGrid = document.getElementById('chk-grid');
+        const satScoreEl = document.getElementById('sat-score');
+        const infraScoreEl = document.getElementById('infra-score');
+        const sliderGravity = document.getElementById('slider-gravity');
+        const gravVal = document.getElementById('grav-val');
+
+        sliderGravity.addEventListener('input', (e) => {
+            baseGravity = parseInt(e.target.value);
+            gravVal.innerText = baseGravity;
+        });
+
+        // Tool Selection UI update
+        function updateToolUI() {
+            if (activeTool === 'intervention') {
+                toolIntervention.className = "tool-btn active flex items-center gap-3 p-3 rounded-lg bg-blue-600/20 border border-blue-500/50 transition-all";
+                toolProblem.className = "tool-btn flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-pink-600/20 hover:border-pink-500/50 transition-all";
+            } else {
+                toolProblem.className = "tool-btn active flex items-center gap-3 p-3 rounded-lg bg-pink-600/20 border border-pink-500/50 transition-all";
+                toolIntervention.className = "tool-btn flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-blue-600/20 hover:border-blue-500/50 transition-all";
+            }
+        }
+
+        toolIntervention.addEventListener('click', () => { activeTool = 'intervention'; updateToolUI(); });
+        toolProblem.addEventListener('click', () => { activeTool = 'problem'; updateToolUI(); });
+
+        document.getElementById('btn-clear').addEventListener('click', () => { wells = []; resetParticles(); });
+        document.getElementById('btn-scenario-crisis').addEventListener('click', loadCrisisScenario);
+        document.getElementById('btn-scenario-smart').addEventListener('click', loadSmartScenario);
+        document.getElementById('btn-scenario-shield').addEventListener('click', loadShieldScenario);
+
+        // Interaction
+        canvas.addEventListener('mousedown', (e) => {
+            mousePos = { x: e.clientX, y: e.clientY };
+            if (e.shiftKey) {
+                mouseGravityGun = true;
+            } else {
+                wells.push({
+                    x: e.clientX,
+                    y: e.clientY,
+                    type: activeTool,
+                    mass: activeTool === 'intervention' ? baseGravity : -baseGravity,
+                    radius: 20 + Math.random()*10,
+                    id: Math.random()
+                });
+            }
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            mousePos = { x: e.clientX, y: e.clientY };
+        });
+
+        canvas.addEventListener('mouseup', () => { mouseGravityGun = false; });
+        canvas.addEventListener('mouseleave', () => { mouseGravityGun = false; });
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+                this.history = [];
+            }
+
+            update() {
+                let ax = 0;
+                let ay = 0;
+
+                const applyForce = (wx, wy, mass) => {
+                    const dx = wx - this.x;
+                    const dy = wy - this.y;
+                    const distSq = dx*dx + dy*dy;
+                    const dist = Math.sqrt(distSq);
+                    
+                    if (dist > 5) {
+                        const force = mass / Math.max(distSq, 100); 
+                        ax += (dx / dist) * force;
+                        ay += (dy / dist) * force;
+                    }
+                };
+
+                wells.forEach(well => applyForce(well.x, well.y, well.type === 'intervention' ? baseGravity : -baseGravity));
+                
+                if (mouseGravityGun) {
+                    applyForce(mousePos.x, mousePos.y, -3000); // Repulse from mouse
+                }
+
+                // Friction
+                this.vx = (this.vx + ax) * 0.98;
+                this.vy = (this.vy + ay) * 0.98;
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Bounce off walls elastically
+                if (this.x < 0) { this.x = 0; this.vx *= -0.8; }
+                if (this.x > width) { this.x = width; this.vx *= -0.8; }
+                if (this.y < 0) { this.y = 0; this.vy *= -0.8; }
+                if (this.y > height) { this.y = height; this.vy *= -0.8; }
+
+                if (chkTrails.checked) {
+                    this.history.push({x: this.x, y: this.y});
+                    if (this.history.length > 20) this.history.shift();
+                } else {
+                    this.history = [];
+                }
+            }
+
+            draw(ctx) {
+                if (chkTrails.checked && this.history.length > 1) {
+                    ctx.beginPath();
+                    ctx.moveTo(this.history[0].x, this.history[0].y);
+                    for (let i = 1; i < this.history.length; i++) {
+                        ctx.lineTo(this.history[i].x, this.history[i].y);
+                    }
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.fill();
+            }
+        }
+
+        function resetParticles() {
+            particles = [];
+            // Calculate number of particles based on screen size (roughly 1 particle per 5000 pixels)
+            const count = Math.floor((width * height) / 5000);
+            for (let i=0; i<count; i++) {
+                particles.push(new Particle(Math.random() * width, Math.random() * height));
+            }
+        }
+        resetParticles();
+
+        function loadCrisisScenario() {
+            wells = [];
+            resetParticles();
+            for(let i=0; i<8; i++) {
+                wells.push({
+                    x: width * 0.2 + Math.random() * width * 0.6,
+                    y: height * 0.2 + Math.random() * height * 0.6,
+                    type: 'problem', mass: -2500, radius: 25, id: Math.random()
+                });
+            }
+        }
+
+        function loadSmartScenario() {
+            wells = [];
+            resetParticles();
+            wells.push({x: width/2, y: height/2, type: 'intervention', mass: 4000, radius: 40, id: Math.random()});
+            wells.push({x: width*0.3, y: height*0.3, type: 'intervention', mass: 2000, radius: 25, id: Math.random()});
+            wells.push({x: width*0.7, y: height*0.7, type: 'intervention', mass: 2000, radius: 25, id: Math.random()});
+            wells.push({x: width*0.3, y: height*0.7, type: 'intervention', mass: 2000, radius: 25, id: Math.random()});
+            wells.push({x: width*0.7, y: height*0.3, type: 'intervention', mass: 2000, radius: 25, id: Math.random()});
+        }
+        
+        function loadShieldScenario() {
+            wells = [];
+            resetParticles();
+            // Core intervention
+            wells.push({x: width/2, y: height/2, type: 'intervention', mass: 5000, radius: 40, id: Math.random()});
+            // Ring of problems
+            for(let i=0; i<8; i++) {
+                let angle = (i/8) * Math.PI * 2;
+                let r = Math.min(width, height) * 0.3;
+                wells.push({
+                    x: width/2 + Math.cos(angle)*r, 
+                    y: height/2 + Math.sin(angle)*r, 
+                    type: 'problem', mass: -3000, radius: 20, id: Math.random()
+                });
+            }
+        }
+
+        function drawGrid(ctx) {
+            if (!chkGrid.checked) return;
+            const spacing = 50;
+            
+            ctx.lineWidth = 1;
+            
+            for (let x = 0; x < width; x += spacing) {
+                for (let y = 0; y < height; y += spacing) {
+                    let dx = 0; let dy = 0;
+                    wells.forEach(well => {
+                        const wdx = well.x - x;
+                        const wdy = well.y - y;
+                        const distSq = wdx*wdx + wdy*wdy;
+                        const mass = well.type === 'intervention' ? baseGravity : -baseGravity;
+                        const force = (mass / Math.max(distSq, 100)) * 5; 
+                        dx += (wdx / Math.sqrt(distSq)) * force;
+                        dy += (wdy / Math.sqrt(distSq)) * force;
+                    });
+                    
+                    if (mouseGravityGun) {
+                        const wdx = mousePos.x - x;
+                        const wdy = mousePos.y - y;
+                        const distSq = wdx*wdx + wdy*wdy;
+                        const force = (-3000 / Math.max(distSq, 100)) * 5; 
+                        dx += (wdx / Math.sqrt(distSq)) * force;
+                        dy += (wdy / Math.sqrt(distSq)) * force;
+                    }
+
+                    const len = Math.sqrt(dx*dx + dy*dy);
+                    if (len > 25) { dx = (dx/len)*25; dy = (dy/len)*25; }
+
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + dx, y + dy);
+                    
+                    if (len > 3) {
+                        let r = 255, g = 255, b = 255;
+                        let alpha = Math.min(len / 15, 0.6);
+                        
+                        let nearestWell = null;
+                        let minDist = Infinity;
+                        wells.forEach(w => {
+                            let d = Math.hypot(w.x - x, w.y - y);
+                            if (d < minDist) { minDist = d; nearestWell = w; }
+                        });
+                        
+                        if (nearestWell) {
+                            if (nearestWell.type === 'intervention') { r = 59; g = 130; b = 246; } // Blue
+                            else { r = 236; g = 72; b = 153; } // Pink
+                        }
+                        
+                        if (mouseGravityGun && Math.hypot(mousePos.x - x, mousePos.y - y) < minDist) {
+                            r = 236; g = 72; b = 153; 
+                        }
+
+                        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                    } else {
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                    }
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                    ctx.fillRect(x-1, y-1, 2, 2);
+                }
+            }
+        }
+
+        function updateMetrics() {
+            let infra = wells.filter(w => w.type==='intervention').length * 15;
+            let problems = wells.filter(w => w.type==='problem').length * 15;
+            
+            let happiness = 0;
+            particles.forEach(p => {
+                let posDist = Infinity;
+                let negDist = Infinity;
+                wells.forEach(w => {
+                    const d = Math.hypot(w.x - p.x, w.y - p.y);
+                    if(w.type === 'intervention') posDist = Math.min(posDist, d);
+                    if(w.type === 'problem') negDist = Math.min(negDist, d);
+                });
+                
+                if (wells.length === 0) happiness += 0.5;
+                else if (posDist < negDist && posDist < (width * 0.3)) happiness++;
+            });
+            
+            let happyPercent = particles.length ? Math.round((happiness / particles.length) * 100) : 0;
+            
+            satScoreEl.innerText = happyPercent + "%";
+            satScoreEl.className = happyPercent > 60 ? "text-green-400 font-mono text-2xl font-semibold transition-colors" : (happyPercent > 40 ? "text-yellow-400 font-mono text-2xl font-semibold transition-colors" : "text-red-400 font-mono text-2xl font-semibold transition-colors");
+            
+            infraScoreEl.innerText = Math.max(0, infra - problems);
+        }
+
+        function animate() {
+            ctx.fillStyle = '#090d16';
+            ctx.fillRect(0, 0, width, height);
+
+            drawGrid(ctx);
+
+            wells.forEach(well => {
+                ctx.beginPath();
+                ctx.arc(well.x, well.y, well.radius, 0, Math.PI * 2);
+                if (well.type === 'intervention') {
+                    ctx.fillStyle = 'rgba(59, 130, 246, 0.15)';
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
+                    ctx.stroke();
+                    
+                    const pulse = 1 + Math.sin(Date.now() / 200 + well.id) * 0.2;
+                    const grad = ctx.createRadialGradient(well.x, well.y, well.radius, well.x, well.y, well.radius * 3 * pulse);
+                    grad.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
+                    grad.addColorStop(1, 'rgba(59, 130, 246, 0)');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(well.x, well.y, well.radius * 3 * pulse, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath(); ctx.arc(well.x, well.y, 3, 0, Math.PI*2); ctx.fill();
+                } else {
+                    ctx.fillStyle = 'rgba(236, 72, 153, 0.15)';
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(236, 72, 153, 0.6)';
+                    ctx.stroke();
+                    
+                    const pulse = 1 + Math.sin(Date.now() / 150 + well.id) * 0.2;
+                    const grad = ctx.createRadialGradient(well.x, well.y, well.radius, well.x, well.y, well.radius * 2.5 * pulse);
+                    grad.addColorStop(0, 'rgba(236, 72, 153, 0.3)');
+                    grad.addColorStop(1, 'rgba(236, 72, 153, 0)');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(well.x, well.y, well.radius * 2.5 * pulse, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath(); ctx.arc(well.x, well.y, 2, 0, Math.PI*2); ctx.fill();
+                }
+            });
+
+            if (mouseGravityGun) {
+                 ctx.beginPath();
+                 ctx.arc(mousePos.x, mousePos.y, 40, 0, Math.PI * 2);
+                 ctx.strokeStyle = 'rgba(236, 72, 153, 0.4)';
+                 ctx.stroke();
+                 const grad = ctx.createRadialGradient(mousePos.x, mousePos.y, 0, mousePos.x, mousePos.y, 40);
+                 grad.addColorStop(0, 'rgba(236, 72, 153, 0.4)');
+                 grad.addColorStop(1, 'rgba(236, 72, 153, 0)');
+                 ctx.fillStyle = grad;
+                 ctx.fill();
+            }
+
+            particles.forEach(p => {
+                p.update();
+                p.draw(ctx);
+            });
+
+            if(Math.random() < 0.2) updateMetrics(); 
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
